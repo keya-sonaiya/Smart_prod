@@ -47,7 +47,7 @@ backend/
     services/
       llm_service.py         Ollama calls: classify_category, extract_field, narrate_list
       recommendation_service.py  deterministic SQL shopping-list builder
-      session_service.py      in-memory per-session state
+      session_service.py      per-session state, persisted in the conversation_sessions table
   seed/
     seed_data.sql                       dining table + TV mount
     seed_data_living_room_gaming_pc.sql  living room + gaming PC

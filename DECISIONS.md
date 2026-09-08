@@ -13,8 +13,12 @@
   instead of a graph database — enough to express REQUIRES/OPTIONAL and
   conditional branches (material, budget, RGB, existing accessories) without the
   setup cost of a graph DB under time pressure.
-- Session state is an in-memory dict, not Redis or a DB table — sufficient for a
-  demo, but would not survive a server restart or scale past one process.
+- Session state (category, collected answers, pending question) is persisted in a
+  `conversation_sessions` table in Postgres, keyed by session_id, rather than an
+  in-memory dict or Redis — a server restart doesn't lose an in-progress conversation,
+  and it scales past one process for free since state isn't pinned to a worker.
+  The trade-off is a DB round trip per chat turn instead of a dict lookup, which is
+  fine at demo scale.
 - Seeded exactly the 4 example scenarios from the problem statement (dining table,
   TV mount, living room, gaming PC) rather than a broad general catalog. Depth and
   correctness — including conditional branching — mattered more than breadth in a
@@ -43,4 +47,5 @@
 - With more time: add pgvector embeddings for semantic category matching on ambiguous
   input, support mid-flow corrections ("actually I meant metal, not wood"), add a
   human-handoff queue for `unknown` classifications instead of a dead-end message, and
-  persist session state to the DB instead of an in-memory dict.
+  add a TTL/cleanup job for abandoned `conversation_sessions` rows that never reach
+  `is_final`.
