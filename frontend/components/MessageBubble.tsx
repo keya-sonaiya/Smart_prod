@@ -8,8 +8,10 @@ export default function MessageBubble({ role, text }: MessageBubbleProps) {
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
-        className={`rounded-lg px-3 py-2 max-w-[80%] whitespace-pre-wrap ${
-          isUser ? "bg-black text-white" : "bg-gray-200 text-black"
+        className={`max-w-[80%] whitespace-pre-wrap rounded-md px-3.5 py-2.5 text-[15px] leading-relaxed ${
+          isUser
+            ? "bg-pine text-paper"
+            : "border border-line bg-surface text-ink"
         }`}
       >
         {text}

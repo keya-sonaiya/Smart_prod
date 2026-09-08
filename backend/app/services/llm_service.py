@@ -75,9 +75,18 @@ def extract_field(
     """
     constraint = ""
     if answer_type == "enum" and enum_options:
-        constraint = f" The value MUST be exactly one of: {enum_options}."
+        constraint = (
+            f" The value MUST be exactly one of: {enum_options}, matching spelling, "
+            "spacing and punctuation exactly — normalize the customer's wording to fit "
+            "(e.g. 'high end' or 'highend' both mean 'high-end')."
+        )
     elif answer_type == "number":
         constraint = " The value MUST be a plain number, no units or words."
+    elif answer_type == "text":
+        constraint = (
+            " Interpret common informal phrasing the way a helpful person would — e.g. "
+            "'4 6' or '4x6' for a size question means 4ft x 6ft, not something to reject."
+        )
 
     system_prompt = (
         f"Extract the value for '{question_key}' from the customer's message.{constraint} "
@@ -96,8 +105,19 @@ def extract_field(
         return None
 
     # Re-validate against our own rules — the model's constraint-following is not guaranteed.
-    if answer_type == "enum" and enum_options and str(value) not in enum_options:
-        return None
+    if answer_type == "enum" and enum_options:
+        normalized = "".join(character for character in str(value).lower() if character.isalnum())
+        matching_option = next(
+            (
+                option
+                for option in enum_options
+                if "".join(character for character in option.lower() if character.isalnum()) == normalized
+            ),
+            None,
+        )
+        if matching_option is None:
+            return None
+        return matching_option
     if answer_type == "number":
         try:
             float(value)
@@ -105,6 +125,30 @@ def extract_field(
             return None
 
     return str(value)
+
+
+def generate_question(
+    category_name: str,
+    question_key: str,
+    answer_type: str,
+    enum_options: list[str] | None,
+    prior_answers: dict[str, str],
+    fallback_text: str,
+) -> str:
+    """Generate question wording while keeping the DB-defined answer contract."""
+    context = ", ".join(f"{key}: {value}" for key, value in prior_answers.items()) or "nothing yet"
+    constraint = f" It must be answerable with one of: {enum_options}." if answer_type == "enum" and enum_options else ""
+    system_prompt = (
+        f"You are a helpful retail expert helping a customer with a {category_name} project. "
+        f"So far they've told you: {context}. "
+        f"Ask ONE natural, friendly follow-up question to learn their {question_key.replace('_', ' ')}."
+        f"{constraint} Respond with ONLY the question text, nothing else."
+    )
+    try:
+        result = _call_ollama(system_prompt, "Ask the next question.").strip()
+    except (httpx.HTTPError, KeyError):
+        return fallback_text
+    return result or fallback_text
 
 
 def narrate_list(category_name: str, items: list[dict[str, Any]]) -> str:

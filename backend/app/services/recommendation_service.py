@@ -8,6 +8,7 @@ from app import models
 _NAMED_FORMULAS = {
     "seating": lambda answers: int(float(answers.get("seating", 1))),
     "seating/2": lambda answers: max(1, int(float(answers.get("seating", 2))) // 2),
+    "occupants>4": lambda answers: 2 if float(answers.get("occupants", 0)) > 4 else 1,
 }
 
 
@@ -29,7 +30,14 @@ def _resolve_quantity(formula: str | None, answers: dict[str, Any]) -> int:
 def _condition_matches(condition_json: dict[str, Any] | None, answers: dict[str, Any]) -> bool:
     if not condition_json:
         return True
-    return all(str(answers.get(k)) == str(v) for k, v in condition_json.items())
+    for key, expected in condition_json.items():
+        actual = answers.get(key)
+        if isinstance(expected, dict) and "not" in expected:
+            if str(actual) == str(expected["not"]):
+                return False
+        elif str(actual) != str(expected):
+            return False
+    return True
 
 
 def build_shopping_list(db: Session, category_id: int, answers: dict[str, Any]) -> list[dict[str, Any]]:

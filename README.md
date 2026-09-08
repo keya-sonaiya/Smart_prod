@@ -81,7 +81,7 @@ pip install -r requirements.txt
 cp .env.example .env   # fill in DATABASE_URL, OLLAMA_BASE_URL, OLLAMA_API_KEY
 uvicorn app.main:app --reload --port 8000
 ```
-Check `http://localhost:8000/health` returns `{"status": "ok", "database": "ok"}`.
+Check `http://localhost:8000/health` returns `{"status": "ok", "database": "ok", "llm": "ok"}`.
 
 ### 3. Frontend
 ```

@@ -24,6 +24,13 @@ class CategoryQuestion(Base):
     display_order = Column(Integer, nullable=False)
 
 
+class ConversationSession(Base):
+    __tablename__ = "conversation_sessions"
+
+    session_id = Column(String, primary_key=True)
+    state = Column(JSON, nullable=False)
+
+
 class Product(Base):
     __tablename__ = "products"
 

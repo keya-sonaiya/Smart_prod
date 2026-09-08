@@ -34,10 +34,13 @@ def run_tv_mount_with_cable_management() -> None:
     ])
     assert reply["is_final"] is True
     names = {item["name"] for item in reply["shopping_list"]}
-    core = {"TV Wall Mount", "Wall Plugs", "Screws & Bolts", "Drill Machine", "Spirit Level"}
+    core = {"TV Wall Mount", "Screws & Bolts", "Spirit Level"}
     missing = core - names
     assert not missing, f"Missing core items: {missing}"
     assert "Cable Management Kit" in names, "Cable Management Kit should appear when cable_mgmt=yes"
+    assert "Wall Plugs" not in names, "Wall Plugs should be excluded for drywall"
+    assert "Drill Machine" not in names, "Drill Machine should be excluded for drywall"
+    assert "Adjustable Mount Arm" in names, "Adjustable Mount Arm should appear for adjustable mounts"
     print("TV mount scenario (with cable management) PASSED.\n")
 
 
@@ -55,6 +58,9 @@ def run_tv_mount_without_cable_management() -> None:
     missing = core - names
     assert not missing, f"Missing core items: {missing}"
     assert "Cable Management Kit" not in names, "Cable Management Kit should be excluded when cable_mgmt=no"
+    assert "Wall Plugs" in names, "Wall Plugs should appear for concrete"
+    assert "Drill Machine" in names, "Drill Machine should appear for concrete"
+    assert "Adjustable Mount Arm" not in names, "Adjustable Mount Arm should be excluded for fixed mounts"
     print("TV mount scenario (without cable management) PASSED.\n")
 
 

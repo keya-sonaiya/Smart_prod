@@ -46,8 +46,8 @@ JOIN (VALUES
     ('Sofa Set', 'REQUIRES', '1'),
     ('Coffee Table', 'REQUIRES', '1'),
     ('TV Unit', 'REQUIRES', '1'),
-    ('Curtains', 'REQUIRES', '2'),
-    ('Carpet', 'REQUIRES', '1'),
+    ('Curtains', 'REQUIRES', 'occupants>4'),
+    ('Carpet', 'REQUIRES', 'occupants>4'),
     ('Floor Lamp', 'OPTIONAL', '1'),
     ('Wall Decor', 'OPTIONAL', '1'),
     ('Indoor Plants', 'OPTIONAL', '2')
@@ -83,7 +83,9 @@ FROM categories c, (VALUES
     ('Processor (CPU)', 'pcs'),
     ('Motherboard', 'pcs'),
     ('RAM', 'pcs'),
-    ('Graphics Card (GPU)', 'pcs'),
+    ('RTX 4060', 'pcs'),
+    ('RTX 4070', 'pcs'),
+    ('RTX 4090', 'pcs'),
     ('SSD', 'pcs'),
     ('Power Supply', 'pcs'),
     ('PC Cabinet', 'pcs'),
@@ -103,12 +105,23 @@ JOIN (VALUES
     ('Processor (CPU)', 'REQUIRES', '1'),
     ('Motherboard', 'REQUIRES', '1'),
     ('RAM', 'REQUIRES', '2'),
-    ('Graphics Card (GPU)', 'REQUIRES', '1'),
     ('SSD', 'REQUIRES', '1'),
     ('Power Supply', 'REQUIRES', '1'),
     ('PC Cabinet', 'REQUIRES', '1'),
     ('Cooling Fan', 'REQUIRES', '2')
 ) AS r(name, relation_type, qty) ON r.name = p.name
+WHERE c.key = 'gaming_pc';
+
+-- Budget selects the GPU tier rather than returning one generic graphics card.
+INSERT INTO product_relationships (category_id, product_id, relation_type, quantity_formula, condition_json)
+SELECT c.id, p.id, 'REQUIRES', '1', r.condition_json::json
+FROM categories c
+JOIN products p ON p.category_id = c.id
+JOIN (VALUES
+    ('RTX 4060', '{"budget":"budget"}'),
+    ('RTX 4070', '{"budget":"mid-range"}'),
+    ('RTX 4090', '{"budget":"high-end"}')
+) AS r(name, condition_json) ON r.name = p.name
 WHERE c.key = 'gaming_pc';
 
 -- Conditional: only suggest keyboard/mouse if they DON'T already have accessories
@@ -138,7 +151,15 @@ FROM product_relationships pr
 JOIN categories c ON c.id = pr.category_id
 WHERE c.key = 'living_room'
     AND pr.relation_type = 'OPTIONAL'
-    AND pr.condition_json::text = '{"budget": "medium"}';
+    AND pr.condition_json->>'budget' = 'medium'
+    AND NOT EXISTS (
+        SELECT 1
+        FROM product_relationships existing
+        WHERE existing.category_id = pr.category_id
+            AND existing.product_id = pr.product_id
+            AND existing.relation_type = pr.relation_type
+            AND existing.condition_json->>'budget' = 'high'
+    );
 
 -- High-end gaming PCs get an additional 2TB SSD.
 INSERT INTO products (name, category_id, unit, attributes)

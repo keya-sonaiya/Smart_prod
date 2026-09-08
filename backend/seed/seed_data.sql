@@ -33,7 +33,11 @@ INSERT INTO products (name, category_id, unit, attributes) VALUES
 ('Drill Machine', 2, 'pcs', '{}'),
 ('Spirit Level', 2, 'pcs', '{}'),
 ('Cable Management Kit', 2, 'set', '{}'),
-('HDMI Cable', 2, 'pcs', '{}');
+('HDMI Cable', 2, 'pcs', '{}'),
+('Adjustable Mount Arm', 2, 'pcs', '{}'),
+('Metal Sheet', 1, 'sheet', '{"material":"metal"}'),
+('Metal Bolts', 1, 'pcs', '{}'),
+('Metal Polish', 1, 'bottle', '{}');
 
 -- ---------- Relationships: dining table ----------
 INSERT INTO product_relationships (category_id, product_id, relation_type, quantity_formula, condition_json) VALUES
@@ -43,17 +47,21 @@ INSERT INTO product_relationships (category_id, product_id, relation_type, quant
 (1, 4, 'REQUIRES', '12', '{"material":"wood"}'),
 (1, 5, 'REQUIRES', '1', '{"material":"wood"}'),
 (1, 6, 'REQUIRES', '2', '{"material":"wood"}'),
-(1, 7, 'REQUIRES', '1', '{"material":"wood"}');
+(1, 7, 'REQUIRES', '1', '{"material":"wood"}'),
+(1, 16, 'REQUIRES', '1', '{"material":"metal"}'),
+(1, 17, 'REQUIRES', '12', '{"material":"metal"}'),
+(1, 18, 'REQUIRES', '1', '{"material":"metal"}');
 
 -- ---------- Relationships: TV mount ----------
 INSERT INTO product_relationships (category_id, product_id, relation_type, quantity_formula, condition_json) VALUES
 (2, 8, 'REQUIRES', '1', '{}'),
-(2, 9, 'REQUIRES', '4', '{}'),
+(2, 9, 'REQUIRES', '4', '{"wall_type":{"not":"drywall"}}'),
 (2, 10, 'REQUIRES', '4', '{}'),
-(2, 11, 'REQUIRES', '1', '{}'),
+(2, 11, 'REQUIRES', '1', '{"wall_type":{"not":"drywall"}}'),
 (2, 12, 'REQUIRES', '1', '{}'),
 (2, 13, 'OPTIONAL', '1', '{"cable_mgmt":"yes"}'),
-(2, 14, 'OPTIONAL', '1', '{}');
+(2, 14, 'OPTIONAL', '1', '{}'),
+(2, 15, 'OPTIONAL', '1', '{"mount_type":"adjustable"}');
 
 -- Seating affects the number of nut-and-bolt sets required.
 UPDATE product_relationships

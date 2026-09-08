@@ -39,5 +39,25 @@ def run_dining_table_scenario() -> None:
     print("Dining table scenario PASSED.")
 
 
+def run_dining_table_scenario_large_seating() -> None:
+    """seating=10 -> Nut & Bolt Set quantity should scale to seating/2."""
+    session_id = str(uuid.uuid4())
+    turns = ["I want to build a dining table.", "4x6", "wood", "10"]
+    reply = None
+    for turn in turns:
+        response = httpx.post(
+            f"{BASE_URL}/chat",
+            json={"session_id": session_id, "message": turn},
+            timeout=30,
+        )
+        response.raise_for_status()
+        reply = response.json()
+    assert reply is not None and reply["is_final"] is True
+    bolt_qty = next(item["quantity"] for item in reply["shopping_list"] if item["name"] == "Nut & Bolt Set")
+    assert bolt_qty == 5, f"Expected 5, got {bolt_qty}"
+    print("Dining table large-seating quantity scenario PASSED.")
+
+
 if __name__ == "__main__":
     run_dining_table_scenario()
+    run_dining_table_scenario_large_seating()

@@ -33,6 +33,13 @@
 - `narrate_list` also degrades gracefully to a static sentence if the Ollama call
   itself fails, so a flaky LLM call can't block the customer from seeing their
   shopping list — the list itself is unaffected either way since it's built by SQL.
+- Answers that currently change the output: dining-table seating scales nut-and-bolt
+  quantity; TV wall type removes toggle hardware for drywall and mount type adds an
+  adjustable arm; living-room budget gates optional decor and occupants over four
+  doubles curtains and carpet; gaming-PC budget selects RTX 4060/4070/4090 and adds
+  a second SSD for high-end builds; RGB, existing accessories, material, and cable
+  management also gate their related items. Room size, TV size, gaming usage, style,
+  and most free-text answers are collected for context but do not yet affect the list.
 - With more time: add pgvector embeddings for semantic category matching on ambiguous
   input, support mid-flow corrections ("actually I meant metal, not wood"), add a
   human-handoff queue for `unknown` classifications instead of a dead-end message, and
