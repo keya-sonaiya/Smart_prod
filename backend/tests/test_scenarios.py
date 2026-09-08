@@ -42,7 +42,7 @@ def run_dining_table_scenario() -> None:
 def run_dining_table_scenario_large_seating() -> None:
     """seating=10 -> Nut & Bolt Set quantity should scale to seating/2."""
     session_id = str(uuid.uuid4())
-    turns = ["I want to build a dining table.", "4x6", "wood", "10"]
+    turns = ["I want to build a dining table.", "6 x 7 ft", "wood", "10"]
     reply = None
     for turn in turns:
         response = httpx.post(

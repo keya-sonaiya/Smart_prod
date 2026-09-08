@@ -76,20 +76,27 @@ def extract_field(
     constraint = ""
     if answer_type == "enum" and enum_options:
         constraint = (
-            f" The value MUST be exactly one of: {enum_options}, matching spelling, "
-            "spacing and punctuation exactly — normalize the customer's wording to fit "
-            "(e.g. 'high end' or 'highend' both mean 'high-end')."
+            f" The canonical enum values are exactly: {enum_options}. "
+            "Parse the customer's wording and return the matching canonical value, "
+            "normalizing harmless differences in case, spaces, hyphens, and punctuation "
+            "(for example, 'high end' and 'highend' both mean 'high-end')."
         )
     elif answer_type == "number":
-        constraint = " The value MUST be a plain number, no units or words."
+        constraint = (
+            " Extract the numeric value even when the customer includes units or common "
+            "number words; return only the number."
+        )
     elif answer_type == "text":
         constraint = (
-            " Interpret common informal phrasing the way a helpful person would — e.g. "
-            "'4 6' or '4x6' for a size question means 4ft x 6ft, not something to reject."
+            " Preserve the useful meaning of free text and normalize common informal "
+            "phrasing. For dimensions, inputs such as '6 x 7 ft', '6x7', or '6 7' "
+            "mean '6ft x 7ft'; do not reject them just because units or spacing vary."
         )
 
     system_prompt = (
-        f"Extract the value for '{question_key}' from the customer's message.{constraint} "
+        f"Extract the value for '{question_key}' from the customer's message. "
+        f"The raw customer input is: {user_message!r}."
+        f"{constraint} "
         'Respond with ONLY raw JSON in this exact shape: {"value": "<extracted value>"}. '
         'If you cannot confidently extract it, respond {"value": null}.'
     )
