@@ -8,9 +8,11 @@ to a complete, quantity-accurate shopping list — without waiting for a human e
 1. The customer describes what they want in free text.
 2. The LLM (Ollama Cloud, `gpt-oss:120b`) classifies the request into one of our known
    categories, or flags it as `unknown` for human handoff.
-3. The assistant asks the category's follow-up questions one at a time; the LLM extracts
-   structured answers from free-text replies.
-4. Once all answers are collected, **a deterministic SQL query** (not the LLM) assembles
+3. The assistant asks the category's follow-up questions one at a time. Which question
+   comes next isn't a fixed sequence — the LLM picks the next-most-useful remaining
+   question given what's already been answered, and can skip one it judges unnecessary;
+   the LLM also extracts structured answers from the customer's free-text replies.
+4. Once no further question is chosen, **a deterministic SQL query** (not the LLM) assembles
    the final shopping list from a product-relationships table in Postgres, including any
    conditional items (e.g. cable management only if requested, RGB kit only if requested).
 5. The LLM writes a short friendly intro for the already-assembled list — it cannot add,
@@ -18,7 +20,9 @@ to a complete, quantity-accurate shopping list — without waiting for a human e
 
 This split matters: every recommended item traces back to a row in the database, so the
 recommendation logic is fully explainable and can't hallucinate a product that doesn't exist
-in the catalog. See `DECISIONS.md` for the reasoning behind this and other choices.
+in the catalog. The one exception is question selection itself (step 3): unlike the
+shopping-list step, deciding whether to skip a question is an LLM judgment call, not a
+DB-driven rule — see `DECISIONS.md` for the trade-off and its known limitation.
 
 ## Tech stack
 - **Frontend:** Next.js (App Router) + Tailwind
@@ -45,7 +49,8 @@ backend/
     schemas.py              Pydantic request/response models
     routers/chat.py         the /chat endpoint — the conversation state machine
     services/
-      llm_service.py         Ollama calls: classify_category, extract_field, narrate_list
+      llm_service.py         Ollama calls: classify_category, extract_field,
+                               choose_next_question, narrate_list
       recommendation_service.py  deterministic SQL shopping-list builder
       session_service.py      per-session state, persisted in the conversation_sessions table
   seed/

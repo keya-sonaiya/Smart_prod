@@ -4,6 +4,14 @@
   already-built list — it never decides what to recommend. Every recommended item
   traces to a row in `product_relationships`, which makes the system fully
   explainable and avoids hallucinated products.
+- Question order is no longer a fixed sequence: `choose_next_question` asks the LLM to
+  pick the next-most-useful remaining question (or none) given the answers collected
+  so far, instead of always walking `display_order` top to bottom. This is the one place
+  the LLM decides something beyond wording/extraction — it can choose to skip a question
+  it judges unnecessary. Known limitation: skipping a question that gates a `REQUIRES`
+  relationship (e.g. dining-table `material`, which Wooden Sheet requires) leaves that
+  answer unset, and `_condition_matches` then silently excludes the item rather than
+  asking anyway or defaulting it — this has not yet been guarded against or tested.
 - All LLM calls run at `temperature: 0` and require raw JSON output; every response
   is re-validated against our own known values (category keys, enum options, numeric
   types) before being trusted — the model's constraint-following is a hint, not a guarantee.
@@ -44,7 +52,10 @@
   a second SSD for high-end builds; RGB, existing accessories, material, and cable
   management also gate their related items. Room size, TV size, gaming usage, style,
   and most free-text answers are collected for context but do not yet affect the list.
-- With more time: add pgvector embeddings for semantic category matching on ambiguous
+- With more time: restrict `choose_next_question` so it can only skip questions that
+  gate `OPTIONAL` relationships, never ones referenced in a `REQUIRES` condition_json,
+  and add scripted tests that actually exercise a skip (current tests only cover the
+  fixed-order path); add pgvector embeddings for semantic category matching on ambiguous
   input, support mid-flow corrections ("actually I meant metal, not wood"), add a
   human-handoff queue for `unknown` classifications instead of a dead-end message, and
   add a TTL/cleanup job for abandoned `conversation_sessions` rows that never reach
