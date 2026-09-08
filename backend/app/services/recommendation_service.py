@@ -47,7 +47,7 @@ def build_shopping_list(db: Session, category_id: int, answers: dict[str, Any]) 
     for rel in relationships:
         if not _condition_matches(rel.condition_json, answers):
             continue
-        product = db.query(models.Product).get(rel.product_id)
+        product = db.get(models.Product, rel.product_id)
         if product is None:
             continue
         result.append(

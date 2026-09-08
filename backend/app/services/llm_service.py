@@ -52,7 +52,10 @@ def classify_category(user_message: str, valid_categories: list[dict[str, str]])
         'If nothing fits, respond {"category": "unknown"}.\n\n'
         f"Valid categories:\n{options_text}"
     )
-    parsed = _safe_json(_call_ollama(system_prompt, user_message))
+    try:
+        parsed = _safe_json(_call_ollama(system_prompt, user_message))
+    except (httpx.HTTPError, KeyError):
+        return "unknown"
     category = parsed.get("category", "unknown") if parsed else "unknown"
 
     valid_keys = {c["key"] for c in valid_categories}
@@ -81,7 +84,10 @@ def extract_field(
         'Respond with ONLY raw JSON in this exact shape: {"value": "<extracted value>"}. '
         'If you cannot confidently extract it, respond {"value": null}.'
     )
-    parsed = _safe_json(_call_ollama(system_prompt, user_message))
+    try:
+        parsed = _safe_json(_call_ollama(system_prompt, user_message))
+    except (httpx.HTTPError, KeyError):
+        return None
     if not parsed:
         return None
 

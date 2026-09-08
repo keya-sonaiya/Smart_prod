@@ -7,7 +7,7 @@ _sessions: dict[str, dict[str, Any]] = {}
 def get_session(session_id: str) -> dict[str, Any]:
     return _sessions.setdefault(
         session_id,
-        {"category": None, "answers": {}, "pending_question": None},
+        {"category": None, "answers": {}, "pending_question": None, "retries": 0},
     )
 
 

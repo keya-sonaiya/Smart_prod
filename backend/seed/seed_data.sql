@@ -55,6 +55,12 @@ INSERT INTO product_relationships (category_id, product_id, relation_type, quant
 (2, 13, 'OPTIONAL', '1', '{"cable_mgmt":"yes"}'),
 (2, 14, 'OPTIONAL', '1', '{}');
 
+-- Seating affects the number of nut-and-bolt sets required.
+UPDATE product_relationships
+SET quantity_formula = 'seating/2'
+WHERE product_id = (SELECT id FROM products WHERE name = 'Nut & Bolt Set'
+					AND category_id = (SELECT id FROM categories WHERE key = 'dining_table'));
+
 -- Sanity check after running: this should return the 7 dining-table items.
 -- SELECT p.name, pr.quantity_formula, pr.condition_json
 -- FROM product_relationships pr JOIN products p ON p.id = pr.product_id

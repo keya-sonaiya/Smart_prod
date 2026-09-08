@@ -125,6 +125,41 @@ FROM categories c
 JOIN products p ON p.category_id = c.id AND p.name = 'RGB Lighting Kit'
 WHERE c.key = 'gaming_pc';
 
+-- Budget affects optional living-room decor: low budget gets none, while medium
+-- and high budgets retain the optional items.
+UPDATE product_relationships
+SET condition_json = '{"budget":"medium"}'::json
+WHERE category_id = (SELECT id FROM categories WHERE key = 'living_room')
+    AND relation_type = 'OPTIONAL';
+
+INSERT INTO product_relationships (category_id, product_id, relation_type, quantity_formula, condition_json)
+SELECT pr.category_id, pr.product_id, pr.relation_type, pr.quantity_formula, '{"budget":"high"}'::json
+FROM product_relationships pr
+JOIN categories c ON c.id = pr.category_id
+WHERE c.key = 'living_room'
+    AND pr.relation_type = 'OPTIONAL'
+    AND pr.condition_json::text = '{"budget": "medium"}';
+
+-- High-end gaming PCs get an additional 2TB SSD.
+INSERT INTO products (name, category_id, unit, attributes)
+SELECT 'Extra SSD (2TB)', c.id, 'pcs', '{}'::json
+FROM categories c
+WHERE c.key = 'gaming_pc'
+    AND NOT EXISTS (
+            SELECT 1 FROM products existing
+            WHERE existing.category_id = c.id AND existing.name = 'Extra SSD (2TB)'
+    );
+
+INSERT INTO product_relationships (category_id, product_id, relation_type, quantity_formula, condition_json)
+SELECT c.id, p.id, 'OPTIONAL', '1', '{"budget":"high-end"}'::json
+FROM categories c
+JOIN products p ON p.category_id = c.id AND p.name = 'Extra SSD (2TB)'
+WHERE c.key = 'gaming_pc'
+    AND NOT EXISTS (
+            SELECT 1 FROM product_relationships existing
+            WHERE existing.category_id = c.id AND existing.product_id = p.id
+    );
+
 -- ==========================================================
 -- Sanity checks — run these after the inserts above
 -- ==========================================================

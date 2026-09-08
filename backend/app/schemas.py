@@ -26,3 +26,4 @@ class ChatResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     database: str
+    llm: str

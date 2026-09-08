@@ -80,12 +80,24 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
                 current_question.enum_options,
             )
             if value is None:
+                state["retries"] = state.get("retries", 0) + 1
+                session_service.save_session(req.session_id, state)
+                if state["retries"] >= 3:
+                    category = state["category"]
+                    session_service.reset_session(req.session_id)
+                    return ChatResponse(
+                        session_id=req.session_id,
+                        reply="I'm having trouble understanding — let me connect you with one of our experts.",
+                        is_final=False,
+                        category=category,
+                    )
                 return ChatResponse(
                     session_id=req.session_id,
                     reply=f"Sorry, I didn't quite catch that. {current_question.question_text}",
                     is_final=False,
                     category=state["category"],
                 )
+            state["retries"] = 0
             state["answers"][current_question.question_key] = value
             session_service.save_session(req.session_id, state)
 
