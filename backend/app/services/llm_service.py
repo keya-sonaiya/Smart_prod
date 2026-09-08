@@ -142,20 +142,73 @@ def generate_question(
     prior_answers: dict[str, str],
     fallback_text: str,
 ) -> str:
-    """Generate question wording while keeping the DB-defined answer contract."""
+    """Generate wording without changing the DB-defined field or answer contract."""
     context = ", ".join(f"{key}: {value}" for key, value in prior_answers.items()) or "nothing yet"
-    constraint = f" It must be answerable with one of: {enum_options}." if answer_type == "enum" and enum_options else ""
+    if answer_type == "enum" and enum_options:
+        constraint = (
+            f" The answer MUST be exactly one of these canonical values: {enum_options}."
+        )
+    elif answer_type == "number":
+        constraint = (
+            " Ask for a numeric answer only. Say 'how many' or 'what number', and do not "
+            "replace the number with a qualitative description or a different concept."
+        )
+    elif answer_type == "text":
+        constraint = (
+            " Ask for the requested free-text value directly. If this is a size or dimension, "
+            "give a concise example such as '6 x 7 ft'."
+        )
+    else:
+        constraint = ""
     system_prompt = (
         f"You are a helpful retail expert helping a customer with a {category_name} project. "
         f"So far they've told you: {context}. "
-        f"Ask ONE natural, friendly follow-up question to learn their {question_key.replace('_', ' ')}."
-        f"{constraint} Respond with ONLY the question text, nothing else."
+        f"Ask ONE natural, friendly follow-up question for the field '{question_key}'. "
+        f"The field's answer type is '{answer_type}'. Do not ask about any other field "
+        f"and do not rename or reinterpret this field.{constraint} "
+        "Respond with ONLY the question text, nothing else."
     )
     try:
         result = _call_ollama(system_prompt, "Ask the next question.").strip()
     except (httpx.HTTPError, KeyError):
         return fallback_text
     return result or fallback_text
+
+
+def choose_next_question(
+    category_name: str,
+    questions: list[dict[str, Any]],
+    prior_answers: dict[str, str],
+) -> str | None:
+    """Choose a valid remaining question key, or null when no question is needed."""
+    question_text = "\n".join(
+        f'- {question["question_key"]} ({question["answer_type"]}): {question.get("enum_options") or "free text"}'
+        for question in questions
+    )
+    answers_text = json.dumps(prior_answers, sort_keys=True) if prior_answers else "{}"
+    system_prompt = (
+        f"You are guiding a customer through a {category_name} recommendation. "
+        "Decide whether another answer is needed before generating the shopping list. "
+        "Choose exactly one question_key from the remaining list when its answer could "
+        "improve, condition, or complete the recommendation. Return null only when none "
+        "of the remaining questions is useful or the customer has already provided its "
+        "meaning. Preserve the listed question order: choose the earliest useful remaining "
+        "question, and skip earlier questions only when they are clearly unnecessary. "
+        "Never invent a question key. Respond with ONLY raw JSON in this shape: "
+        '{"question_key": "<key>"} or {"question_key": null}.\n\n'
+        f"Remaining questions:\n{question_text}\n"
+        f"Answers already collected: {answers_text}"
+    )
+    try:
+        parsed = _safe_json(_call_ollama(system_prompt, "Choose the next question."))
+    except (httpx.HTTPError, KeyError):
+        return questions[0]["question_key"] if questions else None
+    if not parsed or parsed.get("question_key") is None:
+        return None
+
+    selected_key = parsed.get("question_key")
+    valid_keys = {question["question_key"] for question in questions}
+    return selected_key if selected_key in valid_keys else (questions[0]["question_key"] if questions else None)
 
 
 def narrate_list(category_name: str, items: list[dict[str, Any]]) -> str:

@@ -33,12 +33,22 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
         session_service.save_session(db, req.session_id, state)
 
         category_row = db.query(models.Category).filter_by(key=category_key).first()
-        first_question = (
+        questions = (
             db.query(models.CategoryQuestion)
             .filter_by(category_id=category_row.id)
             .order_by(models.CategoryQuestion.display_order)
-            .first()
+            .all()
         )
+        question_options = [
+            {
+                "question_key": question.question_key,
+                "answer_type": question.answer_type,
+                "enum_options": question.enum_options,
+            }
+            for question in questions
+        ]
+        next_key = llm_service.choose_next_question(category_row.display_name, question_options, {})
+        first_question = next((question for question in questions if question.question_key == next_key), None)
         if first_question is None:
             # Category exists but has no configured questions — nothing to ask, go straight to list.
             items = recommendation_service.build_shopping_list(db, category_row.id, {})
@@ -111,7 +121,17 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
             state["answers"][current_question.question_key] = value
             session_service.save_session(db, req.session_id, state)
 
-    next_question = next((q for q in questions if q.question_key not in state["answers"]), None)
+    remaining_questions = [q for q in questions if q.question_key not in state["answers"]]
+    question_options = [
+        {
+            "question_key": question.question_key,
+            "answer_type": question.answer_type,
+            "enum_options": question.enum_options,
+        }
+        for question in remaining_questions
+    ]
+    next_key = llm_service.choose_next_question(category_row.display_name, question_options, state["answers"])
+    next_question = next((question for question in remaining_questions if question.question_key == next_key), None)
 
     if next_question is not None:
         state["pending_question"] = next_question.question_key
